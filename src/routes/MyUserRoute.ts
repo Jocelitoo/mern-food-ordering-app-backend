@@ -3,11 +3,11 @@ import MyUserController from '../controllers/MyUserController';
 import { jwtCheck, jwtParse } from '../middleware/auth';
 import { validateMyUserRequest } from '../middleware/validation';
 
-export const router = express.Router();
+export const myUserRoute = express.Router();
 
-router.get('/', jwtCheck, jwtParse, MyUserController.getCurrentUser);
-router.post('/', jwtCheck, MyUserController.createCurrentUser);
-router.put(
+myUserRoute.get('/', jwtCheck, jwtParse, MyUserController.getCurrentUser);
+myUserRoute.post('/', jwtCheck, MyUserController.createCurrentUser);
+myUserRoute.put(
   '/',
   jwtCheck,
   jwtParse,
