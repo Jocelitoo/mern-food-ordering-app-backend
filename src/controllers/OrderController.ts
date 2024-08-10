@@ -7,6 +7,19 @@ const STRIPE = new Stripe(process.env.STRIPE_API_KEY as string);
 const FRONTEND_URL = process.env.FRONTEND_URL as string;
 const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 
+const getMyOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await Order.find({ user: req.userId })
+      .populate('restaurant')
+      .populate('user');
+
+    res.json(orders);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Alguma coisa deu errado' });
+  }
+};
+
 type CheckoutSessionRequest = {
   cartItems: {
     menuItemId: string;
@@ -20,6 +33,7 @@ type CheckoutSessionRequest = {
     city: string;
   };
   restaurantId: string;
+  totalAmount: number;
 };
 
 const stripeWebhookHandler = async (req: Request, res: Response) => {
@@ -48,6 +62,8 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
 
     order.totalAmount = event.data.object.amount_total;
     order.status = 'paid';
+    order.paymentLink = '';
+    order.createdAt = new Date();
 
     await order.save();
   }
@@ -74,6 +90,8 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       deliveryDetails: checkoutSessionRequest.deliveryDetails,
       cartItems: checkoutSessionRequest.cartItems,
       createdAt: new Date(),
+      totalAmount: checkoutSessionRequest.totalAmount,
+      paymentLink: '',
     });
 
     const lineItems = createLineItems(
@@ -93,6 +111,8 @@ const createCheckoutSession = async (req: Request, res: Response) => {
         .status(500)
         .json({ message: 'Erro na criação da stripe session ' });
     }
+
+    newOrder.paymentLink = session.url;
 
     await newOrder.save();
     res.json({ url: session.url });
@@ -166,6 +186,7 @@ const createSession = async (
 };
 
 export default {
+  getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
 };
